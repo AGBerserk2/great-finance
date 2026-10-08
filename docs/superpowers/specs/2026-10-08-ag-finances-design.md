@@ -79,10 +79,11 @@ Todos los montos se guardan como **enteros en centavos** (`int`). Fechas sin hor
 | `categories` | id, name, icon (codepoint), color (int), kind (`expense`/`income`), archived |
 | `transactions` | id, kind (`income`/`expense`/`saving`), amountCents, categoryId?, date, note?, occurrenceId?, debtId?, goalId?, createdAt |
 | `budgets` | id, categoryId, month (`YYYY-MM`), limitCents, alerted80, alerted100 — único (categoryId, month) |
-| `planned_payments` | id, name, amountCents, categoryId, frequency (`once`/`weekly`/`biweekly`/`monthly`), anchorDate, remindHour, remindMinute, remindDaysBefore, debtId?, goalId?, active |
-| `payment_occurrences` | id, plannedPaymentId, dueDate, status (`pending`/`paid`/`snoozed`/`skipped`), snoozedUntil?, transactionId? — único (plannedPaymentId, dueDate) |
+| `planned_payments` | id, name, amountCents, categoryId, frequency (`once`/`weekly`/`biweekly`/`monthly`), anchorDate, remindHour, remindMinute, remindDaysBefore, debtId?, goalId?, active, generatedUntil? |
+| `payment_occurrences` | id, plannedPaymentId, dueDate, status (`pending`/`paid`/`snoozed`/`skipped`), snoozedUntil? — único (plannedPaymentId, dueDate). La transacción generada apunta a la ocurrencia (`transactions.occurrenceId`) |
 | `goals` | id, name, targetCents, deadline?, createdAt, archived |
 | `debts` | id, name, originalCents, balanceCents, annualRatePct (double), monthlyPaymentCents, createdAt, archived |
+| `app_settings` | key, value (p. ej. hora por defecto de recordatorios) |
 
 **Reglas**
 - `saving` (abono a meta): cuenta como salida en el balance del mes, **no** consume presupuesto.
@@ -119,7 +120,7 @@ Todos los montos se guardan como **enteros en centavos** (`int`). Fechas sin hor
 
 **Programador (`PaymentScheduler.sync()`)** — se ejecuta al abrir la app, al volver a primer plano
 y después de crear/editar/borrar pagos o responder una acción:
-1. Para cada pago activo, crea las ocurrencias faltantes con `dueDate` entre hoy y hoy + 60 días.
+1. Para cada pago activo, crea las ocurrencias desde `generatedUntil + 1` (o desde max(ancla, hoy) si es nuevo o se editó) hasta hoy + 60 días, así los vencimientos ocurridos con la app cerrada aparecen como atrasados.
 2. Cancela solo las notificaciones **programadas** (`pendingNotificationRequests`; las ya visibles no
    se tocan, para no borrar un selector "¿Cuándo te recuerdo?" abierto) y vuelve a programar las de ocurrencias
    `pending` (fecha de aviso = dueDate − remindDaysBefore, a la hora del pago) y `snoozed`
