@@ -8,7 +8,6 @@ import 'package:ag_finanzas/services/ledger.dart';
 import 'package:ag_finanzas/services/payment_actions.dart';
 import 'package:ag_finanzas/services/payment_scheduler.dart';
 import 'package:ag_finanzas/services/reminder_text.dart';
-import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
