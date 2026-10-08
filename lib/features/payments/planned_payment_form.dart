@@ -20,7 +20,7 @@ class PlannedPaymentForm extends ConsumerStatefulWidget {
   const PlannedPaymentForm({super.key, this.existing});
   final PlannedPayment? existing;
 
-  static Future<void> open(BuildContext context, {PlannedPayment? existing}) => Navigator.of(context)
+  static Future<void> open(BuildContext context, {PlannedPayment? existing}) => Navigator.of(context, rootNavigator: true)
       .push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => PlannedPaymentForm(existing: existing)));
 
   @override

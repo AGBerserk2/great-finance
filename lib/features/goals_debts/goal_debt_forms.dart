@@ -12,6 +12,7 @@ import '../../widgets/common.dart';
 Future<void> showGoalForm(BuildContext context, {Goal? existing}) => showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       useSafeArea: true,
       showDragHandle: true,
       builder: (_) => _GoalForm(existing: existing),
@@ -20,6 +21,7 @@ Future<void> showGoalForm(BuildContext context, {Goal? existing}) => showModalBo
 Future<void> showDebtForm(BuildContext context, {Debt? existing}) => showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       useSafeArea: true,
       showDragHandle: true,
       builder: (_) => _DebtForm(existing: existing),

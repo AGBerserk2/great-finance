@@ -16,6 +16,7 @@ Future<void> showTransactionSheet(BuildContext context, {Txn? existing}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+      useRootNavigator: true,
     useSafeArea: true,
     showDragHandle: true,
     builder: (_) => TransactionSheet(existing: existing),

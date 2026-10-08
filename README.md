@@ -1,17 +1,27 @@
-# ag_finanzas
+# AG Finanzas
 
-A new Flutter project.
+App Android personal para llevar gastos, ingresos, presupuesto mensual, pagos planeados con
+recordatorios que se responden desde la notificación (Pagué / No pagué), metas de ahorro y deudas.
+Todo se guarda en el teléfono (SQLite); se puede exportar/importar un respaldo JSON desde Ajustes.
 
-## Getting Started
+Diseño: `docs/superpowers/specs/2026-10-08-ag-finances-design.md`.
 
-This project is a starting point for a Flutter application.
+## Desarrollo
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # tras cambiar tablas de Drift
+flutter analyze
+flutter test
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Instalar en el teléfono
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter build apk --release --split-per-abi
+adb install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+```
+
+O copia ese `.apk` al teléfono y ábrelo (permite "instalar apps desconocidas").
+Al abrir la app por primera vez acepta las notificaciones y "Alarmas y recordatorios".
