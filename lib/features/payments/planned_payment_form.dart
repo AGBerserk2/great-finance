@@ -20,8 +20,10 @@ class PlannedPaymentForm extends ConsumerStatefulWidget {
   const PlannedPaymentForm({super.key, this.existing});
   final PlannedPayment? existing;
 
-  static Future<void> open(BuildContext context, {PlannedPayment? existing}) => Navigator.of(context, rootNavigator: true)
-      .push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => PlannedPaymentForm(existing: existing)));
+  static Future<void> open(BuildContext context, {PlannedPayment? existing}) => Navigator.of(
+    context,
+    rootNavigator: true,
+  ).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => PlannedPaymentForm(existing: existing)));
 
   @override
   ConsumerState<PlannedPaymentForm> createState() => _PlannedPaymentFormState();
@@ -30,12 +32,15 @@ class PlannedPaymentForm extends ConsumerStatefulWidget {
 class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
   final _formKey = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.existing?.name ?? '');
-  late final _amount =
-      TextEditingController(text: widget.existing == null ? '' : centsToInput(widget.existing!.amountCents));
+  late final _amount = TextEditingController(
+    text: widget.existing == null ? '' : centsToInput(widget.existing!.amountCents),
+  );
   late Frequency _frequency = widget.existing?.frequency ?? Frequency.monthly;
   late DateTime _anchor = widget.existing?.anchorDate ?? dateOnly(DateTime.now());
   late TimeOfDay _time = TimeOfDay(hour: widget.existing?.remindHour ?? 9, minute: widget.existing?.remindMinute ?? 0);
   late int _daysBefore = widget.existing?.remindDaysBefore ?? 1;
+  late int _weekdays = widget.existing?.weekdays ?? weekdaysAll;
+  bool _weekdaysError = false;
   late int? _categoryId = widget.existing?.categoryId;
   late int? _debtId = widget.existing?.debtId;
   late int? _goalId = widget.existing?.goalId;
@@ -62,8 +67,12 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
     super.dispose();
   }
 
+  bool get _isDaily => _frequency == Frequency.daily;
+
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    final valid = _formKey.currentState!.validate();
+    setState(() => _weekdaysError = _isDaily && _weekdays == 0);
+    if (!valid || _weekdaysError) return;
     setState(() => _saving = true);
     final companion = PlannedPaymentsCompanion(
       name: Value(_name.text.trim()),
@@ -73,7 +82,8 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
       anchorDate: Value(_anchor),
       remindHour: Value(_time.hour),
       remindMinute: Value(_time.minute),
-      remindDaysBefore: Value(_daysBefore),
+      remindDaysBefore: Value(_isDaily ? 0 : _daysBefore),
+      weekdays: Value(_isDaily ? _weekdays : weekdaysAll),
       debtId: Value(_link == _Link.debt ? _debtId : null),
       goalId: Value(_link == _Link.goal ? _goalId : null),
     );
@@ -108,10 +118,10 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
   }
 
   String get _anchorLabel => switch (_frequency) {
-        Frequency.once => 'Fecha del pago',
-        Frequency.biweekly => 'A partir de',
-        _ => 'Primer vencimiento',
-      };
+    Frequency.once => 'Fecha del pago',
+    Frequency.daily || Frequency.biweekly => 'A partir de',
+    _ => 'Primer vencimiento',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -144,17 +154,45 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
             const SizedBox(height: 20),
             Text('¿Cada cuánto?', style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
-            SegmentedButton<Frequency>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: Frequency.once, label: Text('Una vez')),
-                ButtonSegment(value: Frequency.weekly, label: Text('Semanal')),
-                ButtonSegment(value: Frequency.biweekly, label: Text('Quincenal')),
-                ButtonSegment(value: Frequency.monthly, label: Text('Mensual')),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final (f, label) in const [
+                  (Frequency.once, 'Una vez'),
+                  (Frequency.daily, 'Diario'),
+                  (Frequency.weekly, 'Semanal'),
+                  (Frequency.biweekly, 'Quincenal'),
+                  (Frequency.monthly, 'Mensual'),
+                ])
+                  ChoiceChip(
+                    label: Text(label),
+                    selected: _frequency == f,
+                    onSelected: (_) => setState(() => _frequency = f),
+                  ),
               ],
-              selected: {_frequency},
-              onSelectionChanged: (s) => setState(() => _frequency = s.first),
             ),
+            if (_isDaily) ...[
+              const SizedBox(height: 12),
+              Text('¿Qué días?', style: theme.textTheme.labelLarge),
+              const SizedBox(height: 8),
+              _WeekdayPicker(
+                value: _weekdays,
+                onChanged: (v) => setState(() {
+                  _weekdays = v;
+                  _weekdaysError = false;
+                }),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _weekdaysError
+                      ? 'Marca al menos un día'
+                      : 'Te pregunto esos días a la hora del recordatorio. Si no lo gastaste, no se registra.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: _weekdaysError ? theme.colorScheme.error : null),
+                ),
+              ),
+            ],
             if (_frequency == Frequency.biweekly)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -186,15 +224,26 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
                 if (picked != null) setState(() => _time = picked);
               },
             ),
-            DropdownButtonFormField<int>(
-              initialValue: _daysBefore,
-              decoration: const InputDecoration(labelText: 'Avisarme'),
-              items: [
-                for (final d in const [0, 1, 2, 3, 5, 7])
-                  DropdownMenuItem(value: d, child: Text(d == 0 ? 'El mismo día' : d == 1 ? '1 día antes' : '$d días antes')),
-              ],
-              onChanged: (v) => setState(() => _daysBefore = v!),
-            ),
+            if (!_isDaily)
+              DropdownButtonFormField<int>(
+                isExpanded: true,
+                initialValue: _daysBefore,
+                decoration: const InputDecoration(labelText: 'Avisarme'),
+                items: [
+                  for (final d in const [0, 1, 2, 3, 5, 7])
+                    DropdownMenuItem(
+                      value: d,
+                      child: Text(
+                        d == 0
+                            ? 'El mismo día'
+                            : d == 1
+                            ? '1 día antes'
+                            : '$d días antes',
+                      ),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _daysBefore = v!),
+              ),
             const SizedBox(height: 20),
             Text('¿Va ligado a algo?', style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
@@ -215,30 +264,42 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
             const SizedBox(height: 12),
             if (_link == _Link.debt)
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: debts.any((d) => d.id == _debtId) ? _debtId : null,
                 decoration: const InputDecoration(labelText: 'Deuda'),
                 items: [for (final d in debts) DropdownMenuItem(value: d.id, child: Text(d.name))],
                 onChanged: (v) => setState(() => _debtId = v),
-                validator: (v) => v == null ? (debts.isEmpty ? 'Primero crea una deuda en Metas y Deudas' : 'Elige la deuda') : null,
+                validator: (v) =>
+                    v == null ? (debts.isEmpty ? 'Primero crea una deuda en Metas y Deudas' : 'Elige la deuda') : null,
               ),
             if (_link == _Link.goal)
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: goals.any((g) => g.id == _goalId) ? _goalId : null,
                 decoration: const InputDecoration(labelText: 'Meta'),
                 items: [for (final g in goals) DropdownMenuItem(value: g.id, child: Text(g.name))],
                 onChanged: (v) => setState(() => _goalId = v),
-                validator: (v) => v == null ? (goals.isEmpty ? 'Primero crea una meta en Metas y Deudas' : 'Elige la meta') : null,
+                validator: (v) =>
+                    v == null ? (goals.isEmpty ? 'Primero crea una meta en Metas y Deudas' : 'Elige la meta') : null,
               ),
             if (_link != _Link.goal) ...[
               if (_link == _Link.debt) const SizedBox(height: 12),
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: categories.any((c) => c.id == _categoryId) ? _categoryId : null,
                 decoration: const InputDecoration(labelText: 'Categoría'),
                 items: [
                   for (final c in categories)
                     DropdownMenuItem(
                       value: c.id,
-                      child: Row(children: [Icon(iconFor(c.icon), size: 18, color: Color(c.color)), const SizedBox(width: 8), Text(c.name)]),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(iconFor(c.icon), size: 18, color: Color(c.color)),
+                          const SizedBox(width: 8),
+                          Flexible(child: Text(c.name, overflow: TextOverflow.ellipsis)),
+                        ],
+                      ),
                     ),
                 ],
                 onChanged: (v) => setState(() => _categoryId = v),
@@ -248,8 +309,10 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
             if (_link == _Link.goal)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text('Al pagarlo se registra como ahorro para la meta (no cuenta en el presupuesto).',
-                    style: theme.textTheme.bodySmall),
+                child: Text(
+                  'Al pagarlo se registra como ahorro para la meta (no cuenta en el presupuesto).',
+                  style: theme.textTheme.bodySmall,
+                ),
               ),
             const SizedBox(height: 28),
             FilledButton(
@@ -260,6 +323,71 @@ class _PlannedPaymentFormState extends ConsumerState<PlannedPaymentForm> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _WeekdayPicker extends StatelessWidget {
+  const _WeekdayPicker({required this.value, required this.onChanged});
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  static const _letters = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  static const _names = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            for (var i = 0; i < 7; i++)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Semantics(
+                      label: _names[i],
+                      selected: value & (1 << i) != 0,
+                      button: true,
+                      child: Material(
+                        shape: const CircleBorder(),
+                        color: value & (1 << i) != 0 ? scheme.primary : scheme.surfaceContainerHighest,
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => onChanged(value ^ (1 << i)),
+                          child: Center(
+                            child: MediaQuery.withClampedTextScaling(
+                              maxScaleFactor: 1.3,
+                              child: Text(
+                                _letters[i],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: value & (1 << i) != 0 ? scheme.onPrimary : scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            ActionChip(label: const Text('Lunes a viernes'), onPressed: () => onChanged(weekdaysMonToFri)),
+            ActionChip(label: const Text('Todos'), onPressed: () => onChanged(weekdaysAll)),
+          ],
+        ),
+      ],
     );
   }
 }
