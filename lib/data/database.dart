@@ -36,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -48,6 +48,9 @@ class AppDatabase extends _$AppDatabase {
                 CategoriesCompanion.insert(name: name, icon: icon, color: color, kind: kind),
             ]);
           });
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) await m.addColumn(plannedPayments, plannedPayments.weekdays);
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
