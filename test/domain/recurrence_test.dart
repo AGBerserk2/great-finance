@@ -50,4 +50,34 @@ void main() {
       [d(2026, 10, 5)],
     );
   });
+
+  group('daily', () {
+    test('todos los días por defecto', () {
+      expect(
+        dueDatesBetween(Frequency.daily, d(2026, 10, 8), d(2026, 10, 1), d(2026, 10, 11)),
+        [d(2026, 10, 8), d(2026, 10, 9), d(2026, 10, 10), d(2026, 10, 11)],
+      );
+    });
+
+    test('solo los días marcados (lunes a viernes)', () {
+      // 2026-10-08 es jueves; 10 y 11 son sábado y domingo.
+      expect(
+        dueDatesBetween(Frequency.daily, d(2026, 10, 8), d(2026, 10, 8), d(2026, 10, 13), weekdays: weekdaysMonToFri),
+        [d(2026, 10, 8), d(2026, 10, 9), d(2026, 10, 12), d(2026, 10, 13)],
+      );
+    });
+
+    test('máscara vacía no genera nada', () {
+      expect(dueDatesBetween(Frequency.daily, d(2026, 10, 8), d(2026, 10, 8), d(2026, 10, 20), weekdays: 0), isEmpty);
+    });
+  });
+
+  test('weekdayBit y nombres', () {
+    expect(weekdayBit(DateTime.monday), 1);
+    expect(weekdayBit(DateTime.sunday), 64);
+    expect(weekdaysAll, 127);
+    expect(weekdaysLabel(weekdaysAll), 'Todos los días');
+    expect(weekdaysLabel(weekdaysMonToFri), 'Lunes a viernes');
+    expect(weekdaysLabel(weekdayBit(DateTime.monday) | weekdayBit(DateTime.wednesday)), 'Lun, Mié');
+  });
 }
