@@ -35,6 +35,8 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // En pantallas muy angostas (≤ 340 dp) "Presupuesto" no cabe en 1/5 del ancho.
+    final budgetLabel = MediaQuery.sizeOf(context).width < 340 ? 'Presup.' : 'Presupuesto';
     return Scaffold(
       body: shell,
       floatingActionButton: _quickAddTabs.contains(shell.currentIndex)
@@ -45,16 +47,34 @@ class AppShell extends StatelessWidget {
               child: const Icon(Icons.add),
             )
           : null,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Movimientos'),
-          NavigationDestination(icon: Icon(Icons.pie_chart_outline), selectedIcon: Icon(Icons.pie_chart), label: 'Presupuesto'),
-          NavigationDestination(icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Pagos'),
-          NavigationDestination(icon: Icon(Icons.savings_outlined), selectedIcon: Icon(Icons.savings), label: 'Metas'),
-        ],
+      // Las etiquetas no crecen con la letra del sistema para que quepan en una línea
+      // incluso en pantallas de 320 dp.
+      bottomNavigationBar: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.0,
+        child: NavigationBarTheme(
+          data: NavigationBarTheme.of(context).copyWith(
+            labelTextStyle: WidgetStateProperty.resolveWith(
+              (states) => TextStyle(
+                fontSize: 11,
+                fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+          child: NavigationBar(
+            selectedIndex: shell.currentIndex,
+            onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+            destinations: [
+              const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
+              const NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Historial'),
+              NavigationDestination(
+                  icon: const Icon(Icons.pie_chart_outline), selectedIcon: const Icon(Icons.pie_chart), label: budgetLabel),
+              const NavigationDestination(
+                  icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Pagos'),
+              const NavigationDestination(icon: Icon(Icons.savings_outlined), selectedIcon: Icon(Icons.savings), label: 'Metas'),
+            ],
+          ),
+        ),
       ),
     );
   }
