@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ag_finanzas/data/database.dart';
 import 'package:ag_finanzas/data/repositories/budgets_repository.dart';
 import 'package:ag_finanzas/data/repositories/payments_repository.dart';
@@ -164,6 +166,40 @@ void main() {
     );
     expect(reminderBody(view, DateTime(2026, 10, 9, 9)), 'Vence mañana');
     expect(reminderBody(view, DateTime(2026, 10, 12, 9)), 'Venció el sáb 10 oct');
+  });
+
+  test('reminderBody de un gasto diario pregunta por hoy', () {
+    final view = OccurrenceView(
+      PaymentOccurrence(id: 2, plannedPaymentId: 2, dueDate: DateTime(2026, 10, 8), status: OccurrenceStatus.pending),
+      PlannedPayment(
+        id: 2, name: 'Transporte', amountCents: 20000, frequency: Frequency.daily, anchorDate: DateTime(2026, 10, 8),
+        remindHour: 18, remindMinute: 0, remindDaysBefore: 0, weekdays: 31, active: true,
+      ),
+    );
+    expect(reminderBody(view, DateTime(2026, 10, 8, 18)), 'Gasto diario · ¿Lo pagaste hoy?');
+  });
+
+  test('importa un respaldo v1 sin la columna weekdays', () async {
+    final service = BackupService(db);
+    final v1 = {
+      'app': 'ag_finanzas',
+      'schemaVersion': 1,
+      'tables': {
+        'categories': [
+          {'id': 1, 'name': 'Luz', 'icon': 'bolt', 'color': 0, 'kind': 'expense', 'archived': false},
+        ],
+        'planned_payments': [
+          {
+            'id': 1, 'name': 'Luz', 'amountCents': 250000, 'categoryId': 1, 'frequency': 'monthly',
+            'anchorDate': DateTime(2026, 10, 10).millisecondsSinceEpoch, 'remindHour': 9, 'remindMinute': 0,
+            'remindDaysBefore': 0, 'debtId': null, 'goalId': null, 'active': true, 'generatedUntil': null,
+          },
+        ],
+      },
+    };
+    await service.importData(service.parse(jsonEncode(v1)));
+    final p = (await db.select(db.plannedPayments).get()).single;
+    expect(p.weekdays, 127);
   });
 
   group('BackupService', () {
