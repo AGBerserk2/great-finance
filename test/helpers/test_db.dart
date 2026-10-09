@@ -51,6 +51,7 @@ Future<int> addPlanned(
   required DateTime anchor,
   int hour = 9,
   int daysBefore = 0,
+  int weekdays = 127,
   int? debtId,
   int? goalId,
 }) =>
@@ -63,6 +64,7 @@ Future<int> addPlanned(
           remindHour: hour,
           remindMinute: 0,
           remindDaysBefore: Value(daysBefore),
+          weekdays: Value(weekdays),
           debtId: Value(debtId),
           goalId: Value(goalId),
         ));
