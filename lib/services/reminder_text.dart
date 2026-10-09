@@ -12,7 +12,7 @@ String reminderBody(OccurrenceView v, DateTime shownAt) {
   final due = v.occurrence.dueDate;
   final days = dateOnly(due).difference(dateOnly(shownAt)).inHours ~/ 24;
   final dateText = DateFormat('EEE d MMM', 'es').format(due).replaceAll('.', '');
-  if (days == 0) return 'Vence hoy';
+  if (days == 0) return v.isDaily ? 'Gasto diario · ¿Lo pagaste hoy?' : 'Vence hoy';
   if (days == 1) return 'Vence mañana';
   if (days > 1) return 'Vence el $dateText';
   return 'Venció el $dateText';
