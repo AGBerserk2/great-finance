@@ -51,6 +51,9 @@ class PlannedPayments extends Table {
   IntColumn get remindHour => integer()();
   IntColumn get remindMinute => integer()();
   IntColumn get remindDaysBefore => integer().withDefault(const Constant(0))();
+
+  /// Días de la semana en que aplica un pago `daily` (máscara, lunes = 1 … domingo = 64).
+  IntColumn get weekdays => integer().withDefault(const Constant(weekdaysAll))();
   IntColumn get debtId => integer().nullable().references(Debts, #id)();
   IntColumn get goalId => integer().nullable().references(Goals, #id)();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
