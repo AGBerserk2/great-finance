@@ -25,8 +25,8 @@ class HomeScreen extends ConsumerWidget {
     final debts = ref.watch(debtsProvider).valueOrNull ?? const [];
     final theme = Theme.of(context);
 
-    final soon = occurrences
-        .where((v) => v.payment.active && v.isOpen && (v.isOverdue(today) || !v.occurrence.dueDate.isAfter(addDays(today, 7))))
+    final soon = collapseDaily(occurrences.where((v) => v.payment.active).toList(), today)
+        .where((v) => v.isOpen && (v.isOverdue(today) || !v.occurrence.dueDate.isAfter(addDays(today, 7))))
         .toList();
     final topBudget = (budget.where((l) => l.limitCents != null).toList()..sort((a, b) => b.ratio.compareTo(a.ratio)))
         .take(3)
@@ -78,10 +78,14 @@ class HomeScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(children: [
-                              Expanded(child: Text(l.category.name)),
-                              Text('${formatMoney(l.spentCents)} / ${formatMoney(l.limitCents!)}', style: theme.textTheme.bodySmall),
-                            ]),
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              spacing: 8,
+                              children: [
+                                Text(l.category.name),
+                                Text('${formatMoney(l.spentCents)} / ${formatMoney(l.limitCents!)}', style: theme.textTheme.bodySmall),
+                              ],
+                            ),
                             const SizedBox(height: 6),
                             ProgressBar(value: l.ratio, color: levelColor(context, l.level)),
                           ],
