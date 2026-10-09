@@ -1440,6 +1440,18 @@ class $PlannedPaymentsTable extends PlannedPayments
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _weekdaysMeta = const VerificationMeta(
+    'weekdays',
+  );
+  @override
+  late final GeneratedColumn<int> weekdays = GeneratedColumn<int>(
+    'weekdays',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(weekdaysAll),
+  );
   static const VerificationMeta _debtIdMeta = const VerificationMeta('debtId');
   @override
   late final GeneratedColumn<int> debtId = GeneratedColumn<int>(
@@ -1500,6 +1512,7 @@ class $PlannedPaymentsTable extends PlannedPayments
     remindHour,
     remindMinute,
     remindDaysBefore,
+    weekdays,
     debtId,
     goalId,
     active,
@@ -1581,6 +1594,12 @@ class $PlannedPaymentsTable extends PlannedPayments
         ),
       );
     }
+    if (data.containsKey('weekdays')) {
+      context.handle(
+        _weekdaysMeta,
+        weekdays.isAcceptableOrUnknown(data['weekdays']!, _weekdaysMeta),
+      );
+    }
     if (data.containsKey('debt_id')) {
       context.handle(
         _debtIdMeta,
@@ -1655,6 +1674,10 @@ class $PlannedPaymentsTable extends PlannedPayments
         DriftSqlType.int,
         data['${effectivePrefix}remind_days_before'],
       )!,
+      weekdays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}weekdays'],
+      )!,
       debtId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}debt_id'],
@@ -1693,6 +1716,9 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
   final int remindHour;
   final int remindMinute;
   final int remindDaysBefore;
+
+  /// Días de la semana en que aplica un pago `daily` (máscara, lunes = 1 … domingo = 64).
+  final int weekdays;
   final int? debtId;
   final int? goalId;
   final bool active;
@@ -1709,6 +1735,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
     required this.remindHour,
     required this.remindMinute,
     required this.remindDaysBefore,
+    required this.weekdays,
     this.debtId,
     this.goalId,
     required this.active,
@@ -1732,6 +1759,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
     map['remind_hour'] = Variable<int>(remindHour);
     map['remind_minute'] = Variable<int>(remindMinute);
     map['remind_days_before'] = Variable<int>(remindDaysBefore);
+    map['weekdays'] = Variable<int>(weekdays);
     if (!nullToAbsent || debtId != null) {
       map['debt_id'] = Variable<int>(debtId);
     }
@@ -1758,6 +1786,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
       remindHour: Value(remindHour),
       remindMinute: Value(remindMinute),
       remindDaysBefore: Value(remindDaysBefore),
+      weekdays: Value(weekdays),
       debtId: debtId == null && nullToAbsent
           ? const Value.absent()
           : Value(debtId),
@@ -1788,6 +1817,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
       remindHour: serializer.fromJson<int>(json['remindHour']),
       remindMinute: serializer.fromJson<int>(json['remindMinute']),
       remindDaysBefore: serializer.fromJson<int>(json['remindDaysBefore']),
+      weekdays: serializer.fromJson<int>(json['weekdays']),
       debtId: serializer.fromJson<int?>(json['debtId']),
       goalId: serializer.fromJson<int?>(json['goalId']),
       active: serializer.fromJson<bool>(json['active']),
@@ -1809,6 +1839,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
       'remindHour': serializer.toJson<int>(remindHour),
       'remindMinute': serializer.toJson<int>(remindMinute),
       'remindDaysBefore': serializer.toJson<int>(remindDaysBefore),
+      'weekdays': serializer.toJson<int>(weekdays),
       'debtId': serializer.toJson<int?>(debtId),
       'goalId': serializer.toJson<int?>(goalId),
       'active': serializer.toJson<bool>(active),
@@ -1826,6 +1857,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
     int? remindHour,
     int? remindMinute,
     int? remindDaysBefore,
+    int? weekdays,
     Value<int?> debtId = const Value.absent(),
     Value<int?> goalId = const Value.absent(),
     bool? active,
@@ -1840,6 +1872,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
     remindHour: remindHour ?? this.remindHour,
     remindMinute: remindMinute ?? this.remindMinute,
     remindDaysBefore: remindDaysBefore ?? this.remindDaysBefore,
+    weekdays: weekdays ?? this.weekdays,
     debtId: debtId.present ? debtId.value : this.debtId,
     goalId: goalId.present ? goalId.value : this.goalId,
     active: active ?? this.active,
@@ -1870,6 +1903,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
       remindDaysBefore: data.remindDaysBefore.present
           ? data.remindDaysBefore.value
           : this.remindDaysBefore,
+      weekdays: data.weekdays.present ? data.weekdays.value : this.weekdays,
       debtId: data.debtId.present ? data.debtId.value : this.debtId,
       goalId: data.goalId.present ? data.goalId.value : this.goalId,
       active: data.active.present ? data.active.value : this.active,
@@ -1891,6 +1925,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
           ..write('remindHour: $remindHour, ')
           ..write('remindMinute: $remindMinute, ')
           ..write('remindDaysBefore: $remindDaysBefore, ')
+          ..write('weekdays: $weekdays, ')
           ..write('debtId: $debtId, ')
           ..write('goalId: $goalId, ')
           ..write('active: $active, ')
@@ -1910,6 +1945,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
     remindHour,
     remindMinute,
     remindDaysBefore,
+    weekdays,
     debtId,
     goalId,
     active,
@@ -1928,6 +1964,7 @@ class PlannedPayment extends DataClass implements Insertable<PlannedPayment> {
           other.remindHour == this.remindHour &&
           other.remindMinute == this.remindMinute &&
           other.remindDaysBefore == this.remindDaysBefore &&
+          other.weekdays == this.weekdays &&
           other.debtId == this.debtId &&
           other.goalId == this.goalId &&
           other.active == this.active &&
@@ -1944,6 +1981,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
   final Value<int> remindHour;
   final Value<int> remindMinute;
   final Value<int> remindDaysBefore;
+  final Value<int> weekdays;
   final Value<int?> debtId;
   final Value<int?> goalId;
   final Value<bool> active;
@@ -1958,6 +1996,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
     this.remindHour = const Value.absent(),
     this.remindMinute = const Value.absent(),
     this.remindDaysBefore = const Value.absent(),
+    this.weekdays = const Value.absent(),
     this.debtId = const Value.absent(),
     this.goalId = const Value.absent(),
     this.active = const Value.absent(),
@@ -1973,6 +2012,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
     required int remindHour,
     required int remindMinute,
     this.remindDaysBefore = const Value.absent(),
+    this.weekdays = const Value.absent(),
     this.debtId = const Value.absent(),
     this.goalId = const Value.absent(),
     this.active = const Value.absent(),
@@ -1993,6 +2033,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
     Expression<int>? remindHour,
     Expression<int>? remindMinute,
     Expression<int>? remindDaysBefore,
+    Expression<int>? weekdays,
     Expression<int>? debtId,
     Expression<int>? goalId,
     Expression<bool>? active,
@@ -2008,6 +2049,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
       if (remindHour != null) 'remind_hour': remindHour,
       if (remindMinute != null) 'remind_minute': remindMinute,
       if (remindDaysBefore != null) 'remind_days_before': remindDaysBefore,
+      if (weekdays != null) 'weekdays': weekdays,
       if (debtId != null) 'debt_id': debtId,
       if (goalId != null) 'goal_id': goalId,
       if (active != null) 'active': active,
@@ -2025,6 +2067,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
     Value<int>? remindHour,
     Value<int>? remindMinute,
     Value<int>? remindDaysBefore,
+    Value<int>? weekdays,
     Value<int?>? debtId,
     Value<int?>? goalId,
     Value<bool>? active,
@@ -2040,6 +2083,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
       remindHour: remindHour ?? this.remindHour,
       remindMinute: remindMinute ?? this.remindMinute,
       remindDaysBefore: remindDaysBefore ?? this.remindDaysBefore,
+      weekdays: weekdays ?? this.weekdays,
       debtId: debtId ?? this.debtId,
       goalId: goalId ?? this.goalId,
       active: active ?? this.active,
@@ -2079,6 +2123,9 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
     if (remindDaysBefore.present) {
       map['remind_days_before'] = Variable<int>(remindDaysBefore.value);
     }
+    if (weekdays.present) {
+      map['weekdays'] = Variable<int>(weekdays.value);
+    }
     if (debtId.present) {
       map['debt_id'] = Variable<int>(debtId.value);
     }
@@ -2106,6 +2153,7 @@ class PlannedPaymentsCompanion extends UpdateCompanion<PlannedPayment> {
           ..write('remindHour: $remindHour, ')
           ..write('remindMinute: $remindMinute, ')
           ..write('remindDaysBefore: $remindDaysBefore, ')
+          ..write('weekdays: $weekdays, ')
           ..write('debtId: $debtId, ')
           ..write('goalId: $goalId, ')
           ..write('active: $active, ')
@@ -5156,6 +5204,7 @@ typedef $$PlannedPaymentsTableCreateCompanionBuilder =
       required int remindHour,
       required int remindMinute,
       Value<int> remindDaysBefore,
+      Value<int> weekdays,
       Value<int?> debtId,
       Value<int?> goalId,
       Value<bool> active,
@@ -5172,6 +5221,7 @@ typedef $$PlannedPaymentsTableUpdateCompanionBuilder =
       Value<int> remindHour,
       Value<int> remindMinute,
       Value<int> remindDaysBefore,
+      Value<int> weekdays,
       Value<int?> debtId,
       Value<int?> goalId,
       Value<bool> active,
@@ -5308,6 +5358,11 @@ class $$PlannedPaymentsTableFilterComposer
 
   ColumnFilters<int> get remindDaysBefore => $composableBuilder(
     column: $table.remindDaysBefore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get weekdays => $composableBuilder(
+    column: $table.weekdays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5465,6 +5520,11 @@ class $$PlannedPaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get weekdays => $composableBuilder(
+    column: $table.weekdays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get active => $composableBuilder(
     column: $table.active,
     builder: (column) => ColumnOrderings(column),
@@ -5587,6 +5647,9 @@ class $$PlannedPaymentsTableAnnotationComposer
     column: $table.remindDaysBefore,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get weekdays =>
+      $composableBuilder(column: $table.weekdays, builder: (column) => column);
 
   GeneratedColumn<bool> get active =>
       $composableBuilder(column: $table.active, builder: (column) => column);
@@ -5736,6 +5799,7 @@ class $$PlannedPaymentsTableTableManager
                 Value<int> remindHour = const Value.absent(),
                 Value<int> remindMinute = const Value.absent(),
                 Value<int> remindDaysBefore = const Value.absent(),
+                Value<int> weekdays = const Value.absent(),
                 Value<int?> debtId = const Value.absent(),
                 Value<int?> goalId = const Value.absent(),
                 Value<bool> active = const Value.absent(),
@@ -5750,6 +5814,7 @@ class $$PlannedPaymentsTableTableManager
                 remindHour: remindHour,
                 remindMinute: remindMinute,
                 remindDaysBefore: remindDaysBefore,
+                weekdays: weekdays,
                 debtId: debtId,
                 goalId: goalId,
                 active: active,
@@ -5766,6 +5831,7 @@ class $$PlannedPaymentsTableTableManager
                 required int remindHour,
                 required int remindMinute,
                 Value<int> remindDaysBefore = const Value.absent(),
+                Value<int> weekdays = const Value.absent(),
                 Value<int?> debtId = const Value.absent(),
                 Value<int?> goalId = const Value.absent(),
                 Value<bool> active = const Value.absent(),
@@ -5780,6 +5846,7 @@ class $$PlannedPaymentsTableTableManager
                 remindHour: remindHour,
                 remindMinute: remindMinute,
                 remindDaysBefore: remindDaysBefore,
+                weekdays: weekdays,
                 debtId: debtId,
                 goalId: goalId,
                 active: active,
