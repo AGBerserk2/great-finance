@@ -14,6 +14,7 @@ import 'planned_payment_form.dart';
 
 String frequencyLabel(PlannedPayment p) => switch (p.frequency) {
       Frequency.once => 'Una vez · ${formatShortDate(p.anchorDate)}',
+      Frequency.daily => 'Diario · ${weekdaysLabel(p.weekdays)}',
       Frequency.weekly => 'Semanal',
       Frequency.biweekly => 'Quincenal (15 y fin de mes)',
       Frequency.monthly => 'Mensual · día ${p.anchorDate.day}',
@@ -41,12 +42,18 @@ class PaymentsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (list) {
-          final active = list.where((v) => v.payment.active).toList();
+          final active = collapseDaily(list.where((v) => v.payment.active).toList(), today);
           final overdue = active.where((v) => v.isOverdue(today)).toList();
           final upcoming = active
               .where((v) => v.isOpen && !v.isOverdue(today) && !v.occurrence.dueDate.isAfter(addDays(today, 30)))
               .toList();
-          final history = list.where((v) => !v.isOpen && !v.occurrence.dueDate.isBefore(addDays(today, -30))).toList()
+          // De los gastos diarios solo interesa en el historial lo que sí se pagó.
+          final history = list
+              .where((v) =>
+                  !v.isOpen &&
+                  !v.occurrence.dueDate.isBefore(addDays(today, -30)) &&
+                  (!v.isDaily || v.occurrence.status == OccurrenceStatus.paid))
+              .toList()
             ..sort((a, b) => b.occurrence.dueDate.compareTo(a.occurrence.dueDate));
 
           return ListView(
@@ -56,7 +63,7 @@ class PaymentsScreen extends ConsumerWidget {
               if (planned.isEmpty)
                 const EmptyState(
                   icon: Icons.notifications_none,
-                  message: 'Agrega tus pagos fijos (luz, internet, préstamos…) y te aviso antes de que venzan.',
+                  message: 'Agrega tus pagos fijos (luz, internet, préstamos…) o gastos diarios (transporte, almuerzo) y te aviso.',
                 ),
               if (overdue.isNotEmpty) ...[
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: SectionHeader('Atrasados')),
@@ -70,8 +77,8 @@ class PaymentsScreen extends ConsumerWidget {
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: SectionHeader('Mis pagos planeados')),
                 for (final p in planned)
                   ListTile(
-                    leading: const Icon(Icons.repeat),
-                    title: Text(p.name),
+                    leading: Icon(p.frequency == Frequency.daily ? Icons.today : Icons.repeat),
+                    title: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis),
                     subtitle: Text('${formatMoney(p.amountCents)} · ${frequencyLabel(p)}'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => PlannedPaymentForm.open(context, existing: p),
