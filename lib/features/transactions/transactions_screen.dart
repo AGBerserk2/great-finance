@@ -24,19 +24,28 @@ class TransactionsScreen extends ConsumerWidget {
     final totals = ref.watch(monthTotalsProvider(month)).valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Movimientos')),
+      appBar: AppBar(title: const Text('Historial')),
       body: Column(
         children: [
           MonthSelector(month: month, onChanged: (m) => ref.read(selectedMonthProvider.notifier).state = m),
           if (totals != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _Total(label: 'Ingresos', cents: totals.incomeCents, color: MoneyColors.income(context)),
-                  _Total(label: 'Gastos', cents: totals.expenseCents, color: MoneyColors.expense(context)),
-                  _Total(label: 'Ahorro', cents: totals.savingCents, color: MoneyColors.saving(context)),
-                ],
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        _Total(label: 'Ingresos', cents: totals.incomeCents, color: MoneyColors.income(context)),
+                        const VerticalDivider(width: 1),
+                        _Total(label: 'Gastos', cents: totals.expenseCents, color: MoneyColors.expense(context)),
+                        const VerticalDivider(width: 1),
+                        _Total(label: 'Ahorro', cents: totals.savingCents, color: MoneyColors.saving(context)),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           SizedBox(
@@ -86,13 +95,22 @@ class _Total extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-          FittedBox(
-            child: Text(formatMoney(cents), style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600)),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          children: [
+            Text(label, style: Theme.of(context).textTheme.labelMedium, maxLines: 1),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                formatMoney(cents),
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -138,18 +156,27 @@ class TransactionTile extends StatelessWidget {
       TxKind.expense => ('-', MoneyColors.expense(context)),
       TxKind.saving => ('', MoneyColors.saving(context)),
     };
-    final title = switch (t.kind) {
-      TxKind.saving => 'Ahorro · ${goalName ?? 'Meta'}',
-      _ when t.debtId != null => 'Pago · ${debtName ?? 'Deuda'}',
-      _ => item.category?.name ?? 'Sin categoría',
+    final (title, kindLabel) = switch (t.kind) {
+      TxKind.saving => (goalName ?? 'Meta', 'Ahorro'),
+      _ when t.debtId != null => (debtName ?? 'Deuda', 'Pago de deuda'),
+      _ => (item.category?.name ?? 'Sin categoría', null),
     };
+    final note = t.note == title ? null : t.note;
+    final subtitle = [?kindLabel, ?note].join(' · ');
     return ListTile(
       leading: CategoryAvatar(category: item.category),
-      title: Text(title),
-      subtitle: t.note == null ? null : Text(t.note!, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Text(
-        '$sign${formatMoney(t.amountCents)}',
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: subtitle.isEmpty ? null : Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.4),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(
+            '$sign${formatMoney(t.amountCents)}',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+          ),
+        ),
       ),
       onTap: () => showTransactionSheet(context, existing: t),
     );
