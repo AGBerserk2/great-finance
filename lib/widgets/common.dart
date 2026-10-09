@@ -60,9 +60,17 @@ class MonthSelector extends StatelessWidget {
           icon: const Icon(Icons.chevron_left),
           onPressed: () => onChanged(DateTime(month.year, month.month - 1)),
         ),
-        SizedBox(
-          width: 160,
-          child: Text(formatMonth(month), textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 150),
+            child: Text(
+              formatMonth(month),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
         ),
         IconButton(
           tooltip: 'Mes siguiente',
