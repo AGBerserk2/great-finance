@@ -170,4 +170,28 @@ void main() {
       expect(await repo.openOccurrences(), isEmpty);
     });
   });
+
+  group('gasto diario', () {
+    test('genera solo los días marcados y nunca queda atrasado si no se contesta', () async {
+      final repo = PaymentsRepository(db);
+      await addPlanned(db, name: 'Transporte', amount: 20000, frequency: Frequency.daily, anchor: DateTime(2026, 10, 8), weekdays: weekdaysMonToFri);
+      await repo.ensureOccurrences(DateTime(2026, 10, 8));
+      final dates = (await db.select(db.paymentOccurrences).get()).map((o) => o.dueDate).toList();
+      expect(dates.first, DateTime(2026, 10, 8));
+      expect(dates.any((d) => d.weekday == DateTime.saturday || d.weekday == DateTime.sunday), isFalse);
+
+      final views = await repo.openOccurrences();
+      expect(views.where((v) => v.isOverdue(DateTime(2026, 10, 20))), isEmpty);
+    });
+
+    test('un diario pospuesto que se pasa sí cuenta como atrasado', () async {
+      final repo = PaymentsRepository(db);
+      await addPlanned(db, frequency: Frequency.daily, anchor: DateTime(2026, 10, 8));
+      await repo.ensureOccurrences(DateTime(2026, 10, 8));
+      final first = (await db.select(db.paymentOccurrences).get()).first;
+      await repo.setStatus(first.id, OccurrenceStatus.snoozed, snoozedUntil: DateTime(2026, 10, 9));
+      final view = (await repo.occurrenceById(first.id))!;
+      expect(view.isOverdue(DateTime(2026, 10, 10)), isTrue);
+    });
+  });
 }
