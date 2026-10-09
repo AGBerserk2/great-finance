@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../data/database.dart';
+import '../domain/recurrence.dart';
 
 const backupAppId = 'ag_finanzas';
 
@@ -86,7 +87,10 @@ class BackupService {
           b.insertAll(db.categories, rows('categories').map(Category.fromJson));
           b.insertAll(db.goals, rows('goals').map(Goal.fromJson));
           b.insertAll(db.debts, rows('debts').map(Debt.fromJson));
-          b.insertAll(db.plannedPayments, rows('planned_payments').map(PlannedPayment.fromJson));
+          b.insertAll(
+            db.plannedPayments,
+            rows('planned_payments').map((r) => PlannedPayment.fromJson({'weekdays': weekdaysAll, ...r})),
+          );
           b.insertAll(db.paymentOccurrences, rows('payment_occurrences').map(PaymentOccurrence.fromJson));
           b.insertAll(db.transactions, rows('transactions').map(Txn.fromJson));
           b.insertAll(db.budgets, rows('budgets').map(Budget.fromJson));
