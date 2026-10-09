@@ -13,6 +13,7 @@ flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # tras cambiar tablas de Drift
 flutter analyze
 flutter test
+SCREENSHOTS=/tmp/capturas flutter test test/visual   # capturas PNG de cada pantalla
 flutter run
 ```
 
