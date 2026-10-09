@@ -11,9 +11,13 @@ class OccurrenceView {
   final PaymentOccurrence occurrence;
   final PlannedPayment payment;
 
-  /// Pendiente (o pospuesto) con fecha ya vencida respecto a [today].
+  bool get isDaily => payment.frequency == Frequency.daily;
+
+  /// Pendiente (o pospuesto) con fecha ya vencida respecto a [today]. Los gastos diarios no
+  /// contestados no se acumulan como atrasados: si no se marcó "Pagué", ese día no se gastó.
   bool isOverdue(DateTime today) {
     final t = dateOnly(today);
+    if (isDaily && occurrence.status == OccurrenceStatus.pending) return false;
     return switch (occurrence.status) {
       OccurrenceStatus.pending => occurrence.dueDate.isBefore(t),
       OccurrenceStatus.snoozed => occurrence.snoozedUntil!.isBefore(t),
@@ -75,7 +79,7 @@ class PaymentsRepository {
             ? addDays(p.generatedUntil!, 1)
             : (p.anchorDate.isAfter(t) ? p.anchorDate : t);
         if (from.isAfter(until)) continue;
-        final dates = dueDatesBetween(p.frequency, p.anchorDate, from, until);
+        final dates = dueDatesBetween(p.frequency, p.anchorDate, from, until, weekdays: p.weekdays);
         for (final d in dates) {
           await db.into(db.paymentOccurrences).insert(
                 PaymentOccurrencesCompanion.insert(plannedPaymentId: p.id, dueDate: d),
