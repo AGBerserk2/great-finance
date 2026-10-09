@@ -49,12 +49,13 @@ Navegación inferior con 5 pestañas, botón flotante "+" (registro rápido) e �
 
 1. **Inicio** — balance del mes (ingresos, salidas, disponible); pagos de los próximos 7 días
    con estado; las 3 categorías de presupuesto con mayor % consumido; resumen de metas y deudas.
-2. **Movimientos** — lista del mes agrupada por día; selector de mes; filtro por tipo/categoría;
+2. **Historial** (antes "Movimientos") — lista del mes agrupada por día; selector de mes; filtro por tipo/categoría;
    editar y borrar.
 3. **Presupuesto** — por mes: cada categoría de gasto con límite, gastado y barra
    (verde < 80 %, amarillo 80–99 %, rojo ≥ 100 %). Si el mes no tiene límites, se copian los del mes anterior al abrirlo.
 4. **Pagos** — lista de pagos planeados y de sus próximas ocurrencias con estado; crear/editar
    pago; botones dentro de la app para Pagué / Posponer / No lo pagaré. Aviso si faltan permisos.
+   De los gastos diarios solo se lista la ocurrencia de hoy (o la próxima).
 5. **Metas y Deudas** — selector segmentado.
    - Meta: nombre, objetivo, fecha límite opcional, abonos; progreso y "necesitas ahorrar RD$X/mes".
    - Deuda: saldo original, saldo actual, tasa anual, cuota; progreso, fecha estimada de
@@ -79,7 +80,7 @@ Todos los montos se guardan como **enteros en centavos** (`int`). Fechas sin hor
 | `categories` | id, name, icon (codepoint), color (int), kind (`expense`/`income`), archived |
 | `transactions` | id, kind (`income`/`expense`/`saving`), amountCents, categoryId?, date, note?, occurrenceId?, debtId?, goalId?, createdAt |
 | `budgets` | id, categoryId, month (`YYYY-MM`), limitCents, alerted80, alerted100 — único (categoryId, month) |
-| `planned_payments` | id, name, amountCents, categoryId, frequency (`once`/`weekly`/`biweekly`/`monthly`), anchorDate, remindHour, remindMinute, remindDaysBefore, debtId?, goalId?, active, generatedUntil? |
+| `planned_payments` | id, name, amountCents, categoryId, frequency (`once`/`weekly`/`biweekly`/`monthly`), anchorDate, remindHour, remindMinute, remindDaysBefore, weekdays (máscara lun=1…dom=64, solo `daily`), debtId?, goalId?, active, generatedUntil? |
 | `payment_occurrences` | id, plannedPaymentId, dueDate, status (`pending`/`paid`/`snoozed`/`skipped`), snoozedUntil? — único (plannedPaymentId, dueDate). La transacción generada apunta a la ocurrencia (`transactions.occurrenceId`) |
 | `goals` | id, name, targetCents, deadline?, createdAt, archived |
 | `debts` | id, name, originalCents, balanceCents, annualRatePct (double), monthlyPaymentCents, createdAt, archived |
@@ -101,6 +102,8 @@ Todos los montos se guardan como **enteros en centavos** (`int`). Fechas sin hor
 
 - **Recurrencia** `dueDatesBetween(rule, from, to)`:
   - `once`: solo `anchorDate`.
+  - `daily` (gasto fijo diario): cada día marcado en `weekdays` desde `anchorDate`. Pregunta cada
+    día con Pagué / No pagué; si no se contesta, ese día no cuenta como atrasado ni se registra.
   - `weekly`: cada 7 días desde `anchorDate`.
   - `biweekly` (quincenal): días 15 y último día de cada mes.
   - `monthly`: el día de `anchorDate`; si el mes es más corto, el último día del mes.
@@ -208,6 +211,15 @@ test/
 - **Manual en el teléfono:** recibir notificación, Pagué con la app cerrada, No pagué → Mañana,
   reinicio del teléfono.
 
-## 11. Entrega
+## 11. Diseño responsive
+
+Debe verse sin desbordes en 320×640, 360×780 y 411×891 dp con letra del sistema ×1.0 y ×1.3
+(×1.6 desde 360 dp). `test/features/responsive_test.dart` lo verifica; `test/visual/screenshots_test.dart`
+genera capturas con fuentes reales (`SCREENSHOTS=<dir> flutter test test/visual`).
+- Las etiquetas de la barra inferior no escalan con la letra del sistema.
+- Las tarjetas de pago ponen los botones debajo del texto cuando no caben al lado.
+- Los textos largos se cortan con "…" y los montos se reducen en lugar de partirse.
+
+## 12. Entrega
 
 APK release instalado por USB (`adb install`) o compartiendo el archivo. Sin Play Store.
