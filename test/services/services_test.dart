@@ -159,7 +159,7 @@ void main() {
       PaymentOccurrence(id: 1, plannedPaymentId: 1, dueDate: DateTime(2026, 10, 10), status: OccurrenceStatus.snoozed),
       PlannedPayment(
         id: 1, name: 'Agua', amountCents: 50000, frequency: Frequency.monthly, anchorDate: DateTime(2026, 10, 10),
-        remindHour: 9, remindMinute: 0, remindDaysBefore: 0, active: true,
+        remindHour: 9, remindMinute: 0, remindDaysBefore: 0, weekdays: 127, active: true,
       ),
     );
     expect(reminderBody(view, DateTime(2026, 10, 9, 9)), 'Vence mañana');
